@@ -1,0 +1,133 @@
+import 'package:flutter/material.dart';
+import 'package:neis/neis.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  // This widget is the root of your application.
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+        title: '시간표와 급식',
+        debugShowCheckedModeBanner: false,
+        home: Row(mainAxisAlignment: MainAxisAlignment.center,children: [timewidget(),Column(mainAxisAlignment: MainAxisAlignment.center,children: [mealwidget(),nextbtn()],)],)
+        );
+  }
+}
+
+Future<String> meals() async {
+  DateTime dt = DateTime.now();
+  final _neis = Neis(Region.chungnam, "8140246", SchoolType.his,
+      "cc1ac914f5544cd1b0773e6bcd372cca");
+
+  var meal;
+  await _neis.getMeals(dt.year, dt.month).then((value) {
+    meal = value.toString();
+  });
+  meal = meal.replaceAll('[', ' ');
+  meal = meal.split(']');
+  return meal[dt.day-1];
+}
+
+class mealwidget extends StatelessWidget {
+  const mealwidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+          future: meals(),
+          builder: (BuildContext context, AsyncSnapshot snapshot) {
+            if (snapshot.hasData == false) {
+              return CircularProgressIndicator();
+            } else if (snapshot.hasError) {
+              return Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  'Error: ${snapshot.error}',
+                  style: TextStyle(fontSize: 15),
+                ),
+              );
+            } else {
+              String txt = snapshot.data.toString();
+              return Text(
+                "오늘의 급식\n"+(txt.split(',')[2].toString()),
+                style: TextStyle(fontSize: 15, color: Colors.black),
+              );
+            }
+          },
+        );
+  }
+}
+
+Future<List<DataRow> > times() async {
+
+  DateTime dt = DateTime.now();
+  final _neis = Neis(Region.chungnam, "8140246", SchoolType.his,
+      "cc1ac914f5544cd1b0773e6bcd372cca");
+
+  var time;
+  await _neis.getTimetables(1,6,dt).then((value) {
+    time = value;
+    print(time);
+  });
+  
+  List<DataRow> dataRow = [];
+  for(int i = 0;i<7;i++) {
+    List<DataCell> cells = [];
+    for(int j = 0;j<5;j++) {
+      print(time[j][i].toString());
+      cells.add(DataCell(Text(time[j][i].toString())));
+    }
+    print(cells.length);
+    dataRow.add(DataRow(cells : cells));
+  }
+  print("dataRow:$dataRow");
+  return dataRow;
+}
+
+
+class timewidget extends StatelessWidget {
+  const timewidget({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder(
+          future: times(),
+          builder: (BuildContext context, AsyncSnapshot snapshot) {
+            if (snapshot.hasData == false) {
+              return CircularProgressIndicator();
+            } else if (snapshot.hasError) {
+              return Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  'Error: ${snapshot.error}',
+                  style: TextStyle(fontSize: 15),
+                ),
+              );
+            } else {
+              List<DataRow> txt = snapshot.data;
+              List<DataColumn> dataColumn = [];
+              dataColumn.add(DataColumn(label: Text('월')));
+              dataColumn.add(DataColumn(label: Text('화')));
+              dataColumn.add(DataColumn(label: Text('수')));
+              dataColumn.add(DataColumn(label: Text('목')));
+              dataColumn.add(DataColumn(label: Text('금')));
+              return DataTable(columns: dataColumn, rows: txt);
+            }
+          },
+        );
+  }
+}
+
+class nextbtn extends StatelessWidget {
+  const nextbtn({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton( onPressed: () {}, child: Text("마일리지"));
+  }
+}
